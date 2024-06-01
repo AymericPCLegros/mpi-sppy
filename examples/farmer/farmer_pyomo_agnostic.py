@@ -41,7 +41,7 @@ def scenario_creator(
     """
     s = farmer.scenario_creator(scenario_name, use_integer, sense, crops_multiplier,
         num_scens, seedoffset)
-    # In general, be sure to process variables in the same order has the guest does (so indexes match)
+    # In general, be sure to process variables in the same order as the guest does (so indexes match)
     gd = {
         "scenario": s,
         "nonants": {("ROOT",i): v for i,v in enumerate(s.DevotedAcreage.values())},

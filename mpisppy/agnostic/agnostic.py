@@ -13,6 +13,8 @@ import pyomo.environ as pyo
 from mpisppy.utils import sputils
 from mpisppy.utils import config
 import mpisppy.utils.solver_spec as solver_spec
+import scenario_tree
+import numpy as np
 
 
 #========================================
@@ -98,15 +100,50 @@ class Agnostic():
         s.Obj = pyo.Objective(expr=0, sense=gd["sense"])
         s._agnostic_dict = gd
 
-        assert gd["BFs"] is None, "We are only doing two stage for now"
-        # (it would not be that hard to be multi-stage; see hydro.py)
-
-        sputils.attach_root_node(s, s.Obj, [s.nonantVars])
+        if gd["BFs"] is None:
+            assert gd["BFs"] is None, "We are only doing two stage for now"
+            # (it would not be that hard to be multi-stage; see hydro.py)
+            s._mpisppy_node_list = MakeNodesforScen(s, gd["BFs"], gd["nonants"])
+            s._mpisppy_probability = 1/np.prod(gd["BFs"])
+        else:
+            sputils.attach_root_node(s, s.Obj, [s.nonantVars])
 
         s._mpisppy_probability = gd["probability"]
         
         return s
 
+def MakeNodesforScen(model, BFs, var_dict):
+    nonants_dict = {}
+    for key in var_dict:
+        ndn,i = key
+        if ndn not in nonants_dict:
+            nonants_dict[ndn] = list()
+        nonants_dict[ndn].append(var_dict[key])
+    node_list = [None] * len(nonants_dict)
+    for ndn in nonants_dict:
+        decomposed = ndn.split('_')
+        l = len(decomposed)-1
+        parent_name = '_'.join(decomposed[:-1])
+        cost_expression = pyo.Expression(expr=0) # SHOULD BE MODIFIED
+        if l == 0:
+            node_list[0] = scenario_tree.ScenarioNode("ROOT",
+                                         1.0,
+                                         1,
+                                         cost_expression,
+                                         nonants_dict[ndn],
+                                         model)
+        else:
+            node_list[l] = scenario_tree.ScenarioNode(
+                name = ndn,
+                cond_prob = BFs[l-1],
+                stage = l+1,
+                cost_expression = cost_expression,
+                nonant_list = nonants_dict[ndn],
+                scen_model=model,
+                #nonant_ef_suppl_list = nonant_ef_suppl_list,
+                parent_name = parent_name,
+            )
+    return node_list
 
 ############################################################################################################
 
