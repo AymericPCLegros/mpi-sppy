@@ -1,0 +1,70 @@
+model StochasticFarmer
+  uses "mmxprs"
+
+  parameters
+    DATAFILE="data.dat"
+  end-parameters
+
+  declarations
+    crops: set of string
+    ! scenarios: set of string
+
+    ! Decision variables
+    Plant: array(crops) of mpvar
+    Sell: array(crops, scenarios) of mpvar
+    Buy: array(crops, scenarios) of mpvar
+    ExSell: array(crops, scenarios) of mpvar
+
+    ! Random variables (yield per acre under different scenarios)
+    ! Yield: array(crops, scenarios) of real
+    RandomYield: array(crops) of real
+
+    ! Parameters
+    TotalArea: real
+    PlantingCost: array(crops) of real
+    SellingPrice: array(crops) of real
+    ExcessSellingPrice: real
+    PurchasePrice: array(crops) of real
+    MinRequirement: array(crops) of real
+    BeetsQuota: real
+    ! scenario_probability: array(scenarios) of real
+  end-declarations
+
+  initializations from DATAFILE
+    crops
+    !scenarios
+    !Yield
+    !scenario_probability
+    PlantingCost
+    SellingPrice
+    PurchasePrice
+    MinRequirement
+    TotalArea
+    ExcessSellingPrice
+    BeetsQuota
+  end-initializations
+
+  ! Objective: Maximize expected profit
+  ! TotalProfit := sum(s in scenarios) (scenario_probability(s) * (ExcessSellingPrice * ExSell(s) + sum(c in crops) (SellingPrice(c) * Sell(c, s) - PurchasePrice(c) * Buy(c, s)))) - sum(c in crops) (PlantingCost(c) * Plant(c))
+
+  ! Objective: Minimize oppositise of profit
+  minus_profit := - ExcessSellingPrice * ExSell - sum(c in Crops) (SellingPrice(c) * Sell(c) - PurchasePrice(c) * Buy(c)) + sum(c in Crops) (PlantingCost(c) * Plant(c));
+                                                          
+  ! Constraints
+  LandConstraint:= sum(c in crops) Plant(c) <= TotalArea
+
+  ! Constraints for each crop
+  forall(c in crops) do
+    Balance(c):= Yield(c) * Plant(c) + Buy(c) - Sell(c) >= MinRequirement(c)
+  end-do
+  BeetsQuotaConstraint:= Sell("beets") <= BeetsQuota
+  SellBeets:= Sell("beets") + ExSell <= Yield("beets") * Plant("beets"); !+ Buy("beets"); ! which is 0
+
+
+  ! Solve the problem
+  maximize(TotalProfit)
+
+  writeln("Optimal planting strategy:")
+  forall(c in crops) writeln("Acres of ", c, " to plant: ", getsol(Plant(c)))
+  writeln("Maximum expected profit: ", getobjval)
+end-model

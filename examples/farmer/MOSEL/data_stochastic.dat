@@ -1,0 +1,20 @@
+crops: ["wheat" "corn" "beets"]
+scenarios: ["below" "average" "above"]
+Yield: 
+    [("wheat" "below") 2.0
+    ("wheat" "average") 2.5
+    ("wheat" "above") 3.0
+    ("corn" "below") 2.4
+    ("corn" "average") 3.0
+    ("corn" "above") 3.6
+    ("beets" "below") 16.0
+    ("beets" "average") 20.0
+    ("beets" "above") 24.0]
+scenario_probability: [("below") 0.3 ("average") 0.5 ("above") 0.2]
+PlantingCost: [("wheat") 150 ("corn") 230 ("beets") 260]
+SellingPrice: [("wheat") 170 ("corn") 150 ("beets") 36]
+ExcessSellingPrice: 10
+PurchasePrice: [("wheat") 238 ("corn") 210 ("beets") 100]
+MinRequirement: [("wheat") 200 ("corn") 240 ("beets") 0]
+BeetsQuota: 6000
+TotalArea: 500

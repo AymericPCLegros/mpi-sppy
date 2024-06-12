@@ -1,0 +1,17 @@
+model "Chess (completed)"
+ uses "mmxprs"                       ! We shall use Xpress Optimizer</p>
+
+ declarations
+  small,large: mpvar                 ! Decision variables: produced quantities
+ end-declarations
+
+ Profit:=  5*small + 20*large        ! Objective function
+ Lathe:=   3*small + 2*large <= 160  ! Lathe-hours
+ Boxwood:=   small + 3*large <= 200  ! kg of boxwood
+
+ maximize(Profit)                    ! Solve the problem
+
+ writeln("Make ", getsol(small), " small sets")
+ writeln("Make ", getsol(large), " large sets")
+ writeln("Best profit is ", getobjval)
+end-model

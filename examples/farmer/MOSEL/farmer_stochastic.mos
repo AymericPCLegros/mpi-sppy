@@ -1,0 +1,68 @@
+model StochasticFarmer
+  uses "mmxprs"
+
+  parameters
+    DATAFILE="data_stochastic.dat"
+  end-parameters
+
+  declarations
+    crops: set of string
+    scenarios: set of string
+
+    ! Decision variables
+    Plant: array(crops) of mpvar
+    Sell: array(crops, scenarios) of mpvar
+    Buy: array(crops, scenarios) of mpvar
+    ExSell: array(scenarios) of mpvar !Tons of sugar beets sold in excess of the quota under scenario s
+
+    ! Random variables (yield per acre under different scenarios)
+    Yield: array(crops, scenarios) of real
+
+    ! Parameters
+    TotalArea: real
+    PlantingCost: array(crops) of real
+    SellingPrice: array(crops) of real
+    ExcessSellingPrice: real
+    PurchasePrice: array(crops) of real
+    MinRequirement: array(crops) of real
+    BeetsQuota: real
+    scenario_probability: array(scenarios) of real
+  end-declarations
+
+  initializations from DATAFILE
+    crops
+    scenarios
+    Yield
+    scenario_probability
+    PlantingCost
+    SellingPrice
+    PurchasePrice
+    MinRequirement
+    TotalArea
+    ExcessSellingPrice
+    BeetsQuota
+  end-initializations
+
+  ! Objective: Maximize expected profit
+  TotalProfit := sum(s in scenarios) (scenario_probability(s) * (ExcessSellingPrice * ExSell(s) + sum(c in crops) (SellingPrice(c) * Sell(c, s) - PurchasePrice(c) * Buy(c, s)))) - sum(c in crops) (PlantingCost(c) * Plant(c))
+                                                          
+  ! Constraints
+  LandConstraint:= sum(c in crops) Plant(c) <= TotalArea
+
+  ! Constraints for each scenario
+  forall(s in scenarios) do
+    forall(c in crops) do
+      Balance(c, s):= Yield(c, s) * Plant(c) + Buy(c, s) - Sell(c, s) >= MinRequirement(c)
+    end-do
+    BeetsQuotaConstraint(s):= Sell("beets", s) <= BeetsQuota
+    SellBeets(s):= Sell("beets",s) + ExSell(s) <= Yield("beets",s) * Plant("beets"); !+ Buy("beets", s); 
+  end-do
+
+
+  ! Solve the problem
+  maximize(TotalProfit)
+
+  writeln("Optimal planting strategy:")
+  forall(c in crops) writeln("Acres of ", c, " to plant: ", getsol(Plant(c)))
+  writeln("Maximum expected profit: ", getobjval)
+end-model
